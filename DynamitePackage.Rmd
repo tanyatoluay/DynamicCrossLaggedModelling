@@ -1,0 +1,349 @@
+---
+title: "DynamitePackage"
+author: "Tanya Toluay"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    code_folding: hide
+    theme: united
+    toc: true
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dynamite)
+library(dplyr)     # Data manipulation
+library(ggplot2)   # Figures
+library(patchwork) # Combining figures
+library(bayesplot)
+library(knitr)
+library(gridExtra)
+library(tidyr)
+library(stringr)
+library(kableExtra)
+
+```
+
+## Data Simulation
+
+We simulate data for 100 individuals across 10 time points. 
+
+For each individual, we have two time series: one for alcohol scores and one for depression scores. These scores are created using a random walk, where each score is the cumulative sum of random values drawn from a normal distribution. 
+
+A random walk can increase, decrease, or remain relatively stable, depending on the sequence of random values. It’s just that each new value is influenced by the sum of all the previous random changes.
+
+
+```{r warning = FALSE, error = FALSE}
+set.seed(1)
+
+# Simulate data for 100 individuals across 10 time points
+n_id <- 100
+n_time <- 10
+sim_data <- expand.grid(id = 1:n_id, time = 1:n_time)
+
+# Generate alcohol and depression scores with some autocorrelation
+sim_data <- sim_data %>%
+  group_by(id) %>%
+  mutate(
+    alcohol = cumsum(rnorm(n_time, mean = 0, sd = 1)),  # Random walk
+    depression = cumsum(rnorm(n_time, mean = 0, sd = 1)) # Random walk
+  ) %>%
+  ungroup()
+
+```
+
+
+### Overall Trend Across 100 Individuals
+
+:::: {style="display: flex;"}
+
+::: {}
+
+```{r warning = FALSE, error = FALSE}
+ggplot(sim_data, aes(x = time, y = alcohol, group = id, color = time)) +
+  geom_line(alpha = 0.7) +
+  scale_color_gradient(low = "lightblue", high = "blue") +
+  theme_minimal() +
+  labs(title = "Alcohol Scores Over Time", x = "Time", y = "Alcohol Score") +
+  theme(legend.position = "none")
+```
+
+:::
+
+::: {}
+
+```{r warning = FALSE, error = FALSE}
+ggplot(sim_data, aes(x = time, y = depression, group = id, color = time)) +
+  geom_line(alpha = 0.7) +
+  scale_color_gradient(low = "lightcoral", high = "red") +
+  theme_minimal() +
+  labs(title = "Depression Scores Over Time", x = "Time", y = "Depression Score") +
+  theme(legend.position = "none")
+```
+
+
+:::
+
+::::
+
+
+### Trend Close-up; 5 Individuals
+
+
+:::: {style="display: flex;"}
+
+::: {}
+
+```{r warning = FALSE, error = FALSE}
+# Choose individuals to plot 
+individuals_to_plot <- unique(sim_data$id)[1:4]  
+
+individual_trajectories <- sim_data %>%
+  filter(id %in% individuals_to_plot)
+
+ggplot(individual_trajectories, aes(x = time, y = alcohol, group = id, color = factor(id))) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Individual Alcohol Trajectories", x = "Time", y = "Alcohol Score", color = "Individual") +
+  theme_bw()
+```
+
+:::
+
+::: {}
+
+```{r warning = FALSE, error = FALSE}
+ggplot(individual_trajectories, aes(x = time, y = depression, group = id, color = factor(id))) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Individual Depression Trajectories", x = "Time", y = "Depression Score", color = "Individual") +
+  theme_bw()
+```
+
+
+:::
+
+::::
+
+
+
+## Dynamic Cross Lagged Model
+
+We are using R dynamite package to fit a dynamic cross-lagged panel model to longitudinal data.  
+
+In short, this code fits a model where current alcohol and depression levels are predicted by their past levels (cross-lagged effects), and both the baseline levels and the cross-lagged effects are allowed to change over time. The baseline levels are modeled using flexible, non-linear functions (splines). This model accounts for the dynamic and interdependent nature of alcohol and depression scores over time.
+
+
+### Code Formula Explanation
+
+- **dynamite:** This function fits the dynamic model.
+
+- **obs(alcohol ~ ..., family = "gaussian") and obs(depression ~ ..., family = "gaussian"):** These define the observation models for alcohol and depression. Gaussian specifies that the outcomes are normally distributed.
+
+- **lag(alcohol) and lag(depression):** These include the lagged values of alcohol and depression as predictors, creating the cross-lagged structure.
+
+- **time_varying = list(...):** This is crucial. It defines how the effects of variables change over time.
+
+- **Intercept = ~ splines(time, df = 4, degree = 3):** Models the intercept (baseline level) of alcohol and depression using cubic splines (degree 3) with 4 degrees of freedom. This allows the baseline levels to change non-linearly over time.
+
+- **iter = 1000, chains = 4, cores = 4, refresh = 100:** These control the MCMC sampling: 1000 iterations, 4 chains, using 4 cores for parallel processing, and refreshing the progress output every 100 iterations.  It is important to run sufficient iterations and check MCMC diagnostics to ensure convergence.
+
+- **data = sim_data, time = "time", group = "id":** Specifies the data, the time variable, and the grouping variable (individual ID).
+
+- **lag_alcohol = ~ 1 and lag_depression = ~ 1:** These specify that the effects of the lagged alcohol and depression scores are also time-varying. The ~ 1 indicates that these effects are allowed to vary over time (but linearly).
+
+
+```{r echo=TRUE, warning = FALSE, error = FALSE, message=FALSE, results='hide'}
+dynamic_cross_lagged_model <- dynamite(
+  obs(alcohol ~ -1 + lag(alcohol) + lag(depression), family = "gaussian") +  # Main effects (linear)
+  obs(depression ~ -1 + lag(depression) + lag(alcohol), family = "gaussian"),  # Main effects (linear)
+  data = sim_data, time = "time", group = "id",
+  time_varying = list(
+    alcohol = list(
+      Intercept = ~ splines(time, df = 4, degree = 3),
+      lag_alcohol = ~ 1, # Time-varying effect for lagged alcohol
+      lag_depression = ~ 1 # Time-varying effect for lagged depression
+    ),
+    depression = list(
+      Intercept = ~ splines(time, df = 4, degree = 3),
+      lag_depression = ~ 1, # Time-varying effect for lagged depression
+      lag_alcohol = ~ 1 # Time-varying effect for lagged alcohol
+    )
+  ),
+  iter = 1000, chains = 4, cores = 4, refresh = 100
+)
+
+# -1:  Removes the fixed intercept from the model. The intercept will be modeled as time-varying using splines.
+
+```
+
+### Model Output
+
+The model runs smoothly, with convergent chains and sufficient sample sizes for accurate parameter estimates. The results indicate the effects of alcohol and depression over time are being effectively modeled.
+
+
+```{r warning = FALSE, error = FALSE}
+dynamic_cross_lagged_model
+
+kable(summary(dynamic_cross_lagged_model)) 
+```
+
+
+### Interpretation of Model Output 
+
+
+#### Beta (β) - Regression Coefficients
+
+Beta values represent the regression coefficients or impact parameters. They quantify the relationship between one variable (the predictor or independent variable) and another (the outcome or dependent variable). In your lagged model, they specifically represent the impact of past values of a variable on its current value, or on the current value of another variable.
+
+- **`beta_alcohol_alcohol_lag1`**: This tells you how much alcohol consumption in the previous time period (lag 1) affects alcohol consumption in the current time period. A value of 0.9559 suggests a strong positive relationship – higher alcohol use in the past predicts higher alcohol use now.
+- **`beta_alcohol_depression_lag1`**: This shows how much alcohol consumption in the previous time period affects depression in the current time period. A value of -0.0008 suggests a very weak, almost negligible, negative relationship.
+- **`beta_depression_alcohol_lag1`**: The impact of past depression on current alcohol use.
+- **`beta_depression_depression_lag1`**: The impact of past depression on current depression.
+
+#### Sigma (σ) - Standard Deviation of the Error Term
+
+Sigma represents the standard deviation of the error term (or residual) in your regression model. It's a measure of the variability or spread of the data points around the regression line. In simpler terms, it tells you how much the actual observed values deviate from the values predicted by your model. It's essentially a measure of the noise or unexplained variation in the outcome variable.
+
+- **`sigma_alcohol`**: The standard deviation of the errors in the alcohol consumption equation. A higher sigma indicates more variability in alcohol use that isn't explained by the lagged variables in your model.
+- **`sigma_depression`**: The standard deviation of the errors in the depression equation.
+
+
+#### NUTS Sampler Diagnostics
+
+This section is very important as it tells you about the performance of your Bayesian estimation using the No-U-Turn Sampler (NUTS). We have:
+
+- **No divergences, saturated max treedepths or low E-BFMIs**: It means our MCMC chains converged well, and there were no problematic sampling issues.
+
+- **Smallest bulk-ESS**: 2177 (`beta_depression_alcohol_lag1`)
+- **Smallest tail-ESS**: 1307 (`beta_depression_depression_lag1`)
+- **Largest Rhat**: 1.005 (`beta_alcohol_alcohol_lag1`)
+
+##### Explanation:
+
+###### 1. **ESS (Effective Sample Size)**:
+   - This measures how many independent samples you effectively have from the posterior distribution. Higher is better. Bulk ESS refers to the center of the distribution, tail ESS to the tails.
+   - We want ESS to be reasonably large (generally, several hundred or more is good). .
+
+###### 2. **Rhat**:
+   - This measures the convergence between different MCMC chains. Values close to 1 (like ours) indicate good convergence.
+
+
+
+## Visualizations
+
+Our plot shows the estimated strengths and directions of the relationships between lagged and current alcohol and depression levels, along with a measure of uncertainty (credible intervals).  It suggests strong positive relationships of each variable with its own past values, and weaker, more uncertain cross-lagged effects.  
+
+### Graph 1: Posterior means and 90% intervals of the time-invariants
+
+#### How to read the graph:
+- **Posterior means**: These represent the average (mean) estimates of the effects, accounting for the uncertainty in our measurements. Think of them as the most probable value for each relationship.
+- **90% intervals**: These show a range of values for each effect, within which we are 90% confident the true value lies. Wider intervals indicate greater uncertainty about the true effect size.
+- **time-invariant reg**: This indicates that these effects are assumed constant across the time period studied.
+
+##### Axes:
+- **Y-axis (Parameter)**: This axis lists the specific relationships being examined:
+  - `beta_depression_depression_lag1`: The effect of past depression (at time t-1) on current depression (at time t). (Auto-lagged effect)
+  - `beta_depression_alcohol_lag1`: The effect of past alcohol use (at time t-1) on current depression (at time t). (Cross-lagged effect)
+  - `beta_alcohol_depression_lag1`: The effect of past depression (at time t-1) on current alcohol use (at time t). (Cross-lagged effect)
+  - `beta_alcohol_alcohol_lag1`: The effect of past alcohol use (at time t-1) on current alcohol use (at time t). (Auto-lagged effect)
+
+- **X-axis (Value)**: This axis indicates the strength and direction of the relationship:
+  - **Positive values**: Indicate a positive relationship (e.g., higher past alcohol use is associated with higher current alcohol use).
+  - **Negative values**: (If present) would indicate a negative relationship.
+  - **Zero**: Represents no relationship.
+
+##### Dots and lines:
+- **Dots**: Represent the posterior mean (the most likely value) of the effect.
+- **Lines**: Represent the 90% credible intervals.
+
+#### Meaning that:
+
+- `beta_depression_depression_lag1`: A large positive value indicates that past depression is a strong predictor of current depression. Individuals who experienced higher levels of depression in the previous time period are more likely to experience higher levels of depression in the current time period.
+- `beta_alcohol_alcohol_lag1`: A large positive value suggests that past alcohol use is a strong predictor of current alcohol use. Similar to depression, past drinking behavior is a strong indicator of current drinking behavior.
+
+- `beta_depression_alcohol_lag1`: A small positive value suggests a possible positive influence of past alcohol use on current depression. However, the credible interval includes zero, indicating that this effect might not be statistically significant. In other words, we're not very confident that this effect is truly different from zero.
+- `beta_alcohol_depression_lag1`: A small positive value suggests a possible positive influence of past depression on current alcohol use. Again, the credible interval includes zero, suggesting this effect might not be statistically significant.
+
+
+```{r warning = FALSE, error = FALSE}
+plot(dynamic_cross_lagged_model)
+```
+
+
+
+#### Inspecting lagged effects (medians with 95% CI)
+
+In below graph we can see estimated effects of past values (lags) of your variables on their current values:
+
+- **Alcohol -> Alcohol (t-1):** The effect is strongly positive and the credible interval is entirely above zero. This indicates a strong tendency for alcohol levels to persist over time.  High alcohol at t-1 is a strong predictor of high alcohol at time t.
+
+- **Alcohol -> Alcohol (t-2):**  The effect is very close to zero, suggesting that the effect of alcohol two time points prior is negligible when you've already accounted for the previous time point (t-1).
+
+- **Depression -> Depression (t-1):** Similar to alcohol, there's a strong positive effect, indicating that past depression is a strong predictor of current depression.
+
+- **Depression -> Depression (t-2):** The effect is slightly positive but much weaker than the t-1 effect.  The credible interval might even include zero (it's hard to tell precisely from the image). This suggests that the effect of depression two time points prior is weaker and potentially not as reliably different from zero once you've accounted for the t-1 effect.
+
+
+
+:::: {style="display: flex;"}
+
+::: {}
+
+```{r warning = FALSE, error = FALSE}
+# Extract MCMC samples
+mcmc_samples <- dynamic_cross_lagged_model$stanfit
+posterior <- as.data.frame(mcmc_samples)
+
+# 1. Add a .draw column (this is the crucial fix)
+posterior$.draw <- 1:nrow(posterior)  # Add a .draw column
+
+# 2. Reshape the data (directly, no need for complex parameter selection)
+posterior_long <- posterior %>%
+  pivot_longer(cols = starts_with("beta"),
+               names_to = "parameter",
+               values_to = "value") %>%
+  mutate(
+    lag_effect = case_when(
+      str_detect(parameter, "alcohol") & str_detect(parameter, "\\[1\\]") ~ "Alcohol -> Alcohol (t-1)",
+      str_detect(parameter, "depression") & str_detect(parameter, "\\[1\\]") ~ "Depression -> Depression (t-1)",
+      str_detect(parameter, "alcohol") & str_detect(parameter, "\\[2\\]") ~ "Alcohol -> Alcohol (t-2)",
+      str_detect(parameter, "depression") & str_detect(parameter, "\\[2\\]") ~ "Depression -> Depression (t-2)",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(lag_effect))
+
+posterior_summary <- posterior_long %>%
+  group_by(lag_effect) %>%
+  summarize(
+    median_effect = median(value),
+    lower_ci = quantile(value, 0.025),
+    upper_ci = quantile(value, 0.975)
+  )
+
+ggplot(posterior_summary, aes(x = lag_effect, y = median_effect)) +
+  geom_pointrange(aes(ymin = lower_ci, ymax = upper_ci)) +
+  labs(title = "Lagged Effects (Median and 95% CI)", x = "Lagged Effect", y = "Coefficient Value") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels
+```
+
+:::
+
+::: {}
+
+```{r warning = FALSE, error = FALSE}
+ggplot(posterior_long, aes(x = value, fill = lag_effect)) +
+  geom_density(alpha = 0.5) +  # Use density plots
+  facet_wrap(~ lag_effect, scales = "free_y") +  # Facet by lag effect
+  labs(title = "Lagged Effects Distributions (Density Plots)", x = "Coefficient Value", fill = "Lagged Effect") +
+  theme_bw() +
+  theme(legend.position = "none")
+```
+
+:::
+
+::::
+
