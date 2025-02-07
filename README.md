@@ -19,10 +19,8 @@ X ~ N(μ_X, σ_X²),   Y = β₀ + β₁X + ε,   ε ~ N(0, σ_ε²)
 
 ### 2. Statistical Model
 We apply linear regression to estimate the effect of alcohol on depression:
-\[
-\hat{Y} = \hat{\beta}_0 + \hat{\beta}_1 X
-\]
-where \(\hat{\beta}_1\) indicates the change in depression score per unit increase in alcohol consumption.
+$\hat{Y} = \hat{\beta}_0 + \hat{\beta}_1 X$ where $\hat{\beta}_1$ indicates 
+the change in depression score per unit increase in alcohol consumption.
 
 ### 3. Hypothesis Testing
 We test:
@@ -33,7 +31,7 @@ $\beta_1 = 0$)
 $H_A$)**: A significant relationship exists (
 $\beta_1 \neq 0$)
 
-A t-test on \(\hat{\beta}_1\) determines statistical significance.
+A t-test on $\hat{\beta}_1$ determines statistical significance.
 
 ### 4. Bayesian Approach
 A Bayesian regression is also implemented:
