@@ -47,11 +47,3 @@ where priors are assigned to \(\beta\).
 $R^2$) and Adjusted R-squared.
 - **Residual Analysis**: Normality and homoscedasticity checked via diagnostics.
 - **KL Divergence**: Comparing empirical vs. theoretical distributions.
-
-## Conclusion
-Findings help interpret the impact of alcohol on depression using robust statistical methodologies. 
-Further research can explore causal inference and real-world validation.
-
-## Contact
-For issues, questions or furhter collabrations you can reach me via email `tanyatoluay@gmail.com` or my mentor Dr Grittner `ulrike.grittner@charite.de`.
-
