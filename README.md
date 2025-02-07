@@ -34,9 +34,11 @@ $\beta_1 \neq 0$)
 A t-test on $\hat{\beta}_1$ determines statistical significance.
 
 ### 4. Bayesian Approach
-A Bayesian regression is also implemented:  
-$ P(\beta | X, Y) \propto P(Y | X, \beta) P(\beta) $  
-where priors are assigned to $\beta$.
+A Bayesian regression is also implemented:
+
+$$ P(\beta | X, Y) \propto P(Y | X, \beta) P(\beta) $$
+
+where priors are assigned to \(\beta\).
 
 ### 5. Model Evaluation
 - **Goodness of Fit**: R-squared (
