@@ -13,9 +13,8 @@ $X$)**: Continuous variable modeled as a normal distribution.
 $Y$)**: Discrete or continuous response variable influenced by \(X\) with added noise.
 
 Mathematically:
-\[
-X \sim \mathcal{N}(\mu_X, \sigma_X^2), \quad Y = \beta_0 + \beta_1 X + \epsilon, \quad \epsilon \sim \mathcal{N}(0, \sigma_\epsilon^2)
-\]
+X ~ N(μ_X, σ_X²),   Y = β₀ + β₁X + ε,   ε ~ N(0, σ_ε²)
+
 
 ### 2. Statistical Model
 We apply linear regression to estimate the effect of alcohol on depression:
