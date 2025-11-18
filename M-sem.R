@@ -16,7 +16,7 @@ method_dir <- file.path(getwd(), "methods", "sem")
 dir.create(method_dir, recursive = TRUE, showWarnings = FALSE)
 
 # Monte Carlo setup -----------------------------------------------------------
-nsim <- 1000
+nsim <- 2000
 
 ###############################################################################
 # 1. Helper: true causal estimands per scenario
@@ -181,11 +181,11 @@ sem_output <- sem_results %>%
 ###############################################################################
 # 8. Persist outputs
 ###############################################################################
-saveRDS(sem_results,     file.path(method_dir, "sem_results_all_1000.rds"))
-saveRDS(sem_performance, file.path(method_dir, "sem_performance_1000.rds"))
-saveRDS(sem_output,      file.path(method_dir, "sem_output_table_1000.rds"))
+saveRDS(sem_results,     file.path(method_dir, "sem_results_all.rds"))
+saveRDS(sem_performance, file.path(method_dir, "sem_performance.rds"))
+saveRDS(sem_output,      file.path(method_dir, "sem_output_table.rds"))
 
 readr::write_csv(sem_output,
-                 file.path(method_dir, "sem_output_table_1000.csv"))
+                 file.path(method_dir, "sem_output_table.csv"))
 readr::write_csv(sem_performance,
-                 file.path(method_dir, "sem_performance_1000.csv"))
+                 file.path(method_dir, "sem_performance.csv"))
