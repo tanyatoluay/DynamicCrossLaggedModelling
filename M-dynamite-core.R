@@ -39,7 +39,7 @@ dir.create(perf_dir,   showWarnings = FALSE)
 ## Config (lighter + fewer reps)
 ## ---------------------------------------------------------------------------
 
-nsim             <- 1000L          # was 2000
+nsim             <- 2000L          
 scenarios        <- SCENARIO      # single scenario per run
 checkpoint_every <- 100L
 
