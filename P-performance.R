@@ -1,10 +1,10 @@
 ###############################################################################
-# Master performance + plotting script for SEM vs DYNAMITE (1000 runs)
+# Master performance + plotting script for SEM vs DYNAMITE 
 # Project root: /data/cephfs-1/home/users/tato10_c/work/causal_inference_panel_data
 #
 # Functionality:
-#   - Load SEM 1000-run results (single file)
-#   - Load and merge DYNAMITE 1000-run results (multiple checkpoint files)
+#   - Load SEM 
+#   - Load and merge DYNAMITE 
 #   - Build combined long-format dataset
 #   - Compute full set of performance metrics (Morris-style)
 #   - Generate tables (SEM / DYNAMITE / combined)
@@ -117,10 +117,10 @@ mc_se <- function(estimates, theta, ci_low, ci_high, se_mod) {
 }
 
 ###############################################################################
-# 2. Load SEM results (per-replicate, 1000 runs)
+# 2. Load SEM results 
 ###############################################################################
 
-sem_results_file <- file.path(sem_dir, "sem_results_all_1000.rds")
+sem_results_file <- file.path(sem_dir, "sem_results_all.rds")
 if (!file.exists(sem_results_file)) {
   stop("SEM results file not found: ", sem_results_file)
 }
@@ -158,7 +158,7 @@ sem_long <- bind_rows(
 )
 
 ###############################################################################
-# 3. Load DYNAMITE results (1000 runs, merging checkpoint files)
+# 3. Load DYNAMITE results 
 ###############################################################################
 
 # Helper: merge all dynamite_results_sX_*.rds using file modification times
@@ -250,9 +250,9 @@ all_long <- bind_rows(sem_long, dyn_long) %>%
     covered = ci_low <= theta & ci_high >= theta
   )
 
-saveRDS(all_long, file.path(combined_dir, "all_methods_long_results_1000.rds"))
+saveRDS(all_long, file.path(combined_dir, "all_methods_long_results.rds"))
 readr::write_csv(all_long,
-                 file.path(combined_dir, "all_methods_long_results_1000.csv"))
+                 file.path(combined_dir, "all_methods_long_results.csv"))
 
 ###############################################################################
 # 5. Performance metrics per method × scenario × effect (Morris-style)
@@ -291,18 +291,18 @@ dyn_performance  <- perf_all %>% filter(method == "DYNAMITE")
 
 # Persist tables (CSV & RDS)
 readr::write_csv(sem_performance,
-                 file.path(tables_dir, "sem_performance_by_scenario_1000.csv"))
+                 file.path(tables_dir, "sem_performance_by_scenario.csv"))
 readr::write_csv(dyn_performance,
-                 file.path(tables_dir, "dynamite_performance_by_scenario_1000.csv"))
+                 file.path(tables_dir, "dynamite_performance_by_scenario.csv"))
 readr::write_csv(perf_all,
-                 file.path(combined_dir, "combined_performance_by_scenario_1000.csv"))
+                 file.path(combined_dir, "combined_performance_by_scenario.csv"))
 
 saveRDS(sem_performance,
-        file.path(tables_dir, "sem_performance_by_scenario_1000.rds"))
+        file.path(tables_dir, "sem_performance_by_scenario.rds"))
 saveRDS(dyn_performance,
-        file.path(tables_dir, "dynamite_performance_by_scenario_1000.rds"))
+        file.path(tables_dir, "dynamite_performance_by_scenario.rds"))
 saveRDS(perf_all,
-        file.path(combined_dir, "combined_performance_by_scenario_1000.rds"))
+        file.path(combined_dir, "combined_performance_by_scenario.rds"))
 
 ###############################################################################
 # 6. Plot factory: standard plots + ZIP + lollipop + SE diagnostics
@@ -339,7 +339,7 @@ for (s in sort(unique(all_long$scenario))) {
     scale_fill_manual(values = morris_fill)
   
   save_plot_dual(p_density,
-                 sprintf("s%i_density_estimates_1000", s),
+                 sprintf("s%i_density_estimates", s),
                  width = 9, height = 4)
   
   # 6.2 Boxplots of estimates per method × effect ----------------------------
@@ -357,7 +357,7 @@ for (s in sort(unique(all_long$scenario))) {
     scale_fill_manual(values = morris_fill)
   
   save_plot_dual(p_box,
-                 sprintf("s%i_boxplots_estimates_1000", s),
+                 sprintf("s%i_boxplots_estimates", s),
                  width = 7, height = 4)
   
   # 6.3 Estimates by replicate (jittered) ------------------------------------
@@ -377,7 +377,7 @@ for (s in sort(unique(all_long$scenario))) {
     scale_colour_manual(values = morris_cols)
   
   save_plot_dual(p_scatter,
-                 sprintf("s%i_scatter_estimates_by_rep_1000", s),
+                 sprintf("s%i_scatter_estimates_by_rep", s),
                  width = 9, height = 5)
   
   # 6.4 Performance barplots: bias, RMSE, coverage ---------------------------
@@ -399,7 +399,7 @@ for (s in sort(unique(all_long$scenario))) {
     scale_fill_manual(values = morris_fill)
   
   save_plot_dual(p_bias,
-                 sprintf("s%i_bias_by_method_1000", s),
+                 sprintf("s%i_bias_by_method", s),
                  width = 7, height = 4)
   
   # RMSE
@@ -418,7 +418,7 @@ for (s in sort(unique(all_long$scenario))) {
     scale_fill_manual(values = morris_fill)
   
   save_plot_dual(p_rmse,
-                 sprintf("s%i_rmse_by_method_1000", s),
+                 sprintf("s%i_rmse_by_method", s),
                  width = 7, height = 4)
   
   # Coverage
@@ -439,7 +439,7 @@ for (s in sort(unique(all_long$scenario))) {
     scale_fill_manual(values = morris_fill)
   
   save_plot_dual(p_cover,
-                 sprintf("s%i_coverage_by_method_1000", s),
+                 sprintf("s%i_coverage_by_method", s),
                  width = 7, height = 4)
   
   # 6.5 ZIP plots (per effect) -----------------------------------------------
@@ -469,7 +469,7 @@ for (s in sort(unique(all_long$scenario))) {
     
     save_plot_dual(
       p_zip,
-      sprintf("s%i_zip_%s_1000", s, eff),
+      sprintf("s%i_zip_%s_2000", s, eff),
       width = 7, height = 4
     )
   }
@@ -527,7 +527,7 @@ for (s in sort(unique(all_long$scenario))) {
   
   save_plot_dual(
     p_lolli,
-    sprintf("s%i_lollipop_summary_1000", s),
+    sprintf("s%i_lollipop_summary", s),
     width = 10, height = 6
   )
   
@@ -543,7 +543,7 @@ for (s in sort(unique(all_long$scenario))) {
     scale_fill_manual(values = morris_fill)
   
   save_plot_dual(p_se_density,
-                 sprintf("s%i_se_density_1000", s),
+                 sprintf("s%i_se_density", s),
                  width = 8, height = 4)
   
   # 6.8 SE(model) vs estimate -----------------------------------------------
@@ -557,7 +557,7 @@ for (s in sort(unique(all_long$scenario))) {
     scale_colour_manual(values = morris_cols)
   
   save_plot_dual(p_se_vs_est,
-                 sprintf("s%i_se_vs_est_1000", s),
+                 sprintf("s%i_se_vs_est", s),
                  width = 8, height = 4)
   
   # 6.9 SEM vs DYNAMITE limits-of-agreement ----------------------------------
@@ -582,7 +582,7 @@ for (s in sort(unique(all_long$scenario))) {
       theme_bw()
     
     save_plot_dual(p_loa,
-                   sprintf("s%i_limits_of_agreement_1000", s),
+                   sprintf("s%i_limits_of_agreement", s),
                    width = 8, height = 4)
   }
 }
@@ -590,4 +590,4 @@ for (s in sort(unique(all_long$scenario))) {
 ###############################################################################
 # 7. Done ---------------------------------------------------------------------
 
-message("Performance tables and plots (1000 runs) written under: ", perf_root)
+message("Performance tables and plots written under: ", perf_root)
