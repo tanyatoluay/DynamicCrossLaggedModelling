@@ -85,7 +85,7 @@ project_root/
 - Saves full fit objects + coefficient tables  
 - Computes bias, SEs, RMSE, coverage  
 
-#### **DYNAMITE (`M-dynamite.R`)**
+#### **DYNAMITE (`M-dynamite-core.R`)**
 - Bayesian dynamic panel model using **dynamite**  
 - Standardizes variables, rescales effects  
 - Automated checkpointing for HPC jobs  
