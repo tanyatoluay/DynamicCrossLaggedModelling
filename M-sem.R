@@ -161,7 +161,7 @@ sem_performance <- sem_results %>%
   )
 
 ###############################################################################
-# 7. Human-readable summary table
+# 7. Overview summary table
 ###############################################################################
 sem_output <- sem_results %>%
   mutate(
