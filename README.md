@@ -5,7 +5,7 @@ The pipeline operationalizes the ADEMP framework end-to-end, with **A — Aim** 
 
 - **D — Data-Generating Mechanism**  
 - **E — Estimands**  
-- **M — Methods (SEM + Bayesian DYNAMITE)**  
+- **M — Methods (SEM + Bayesian DYNAMITE + G-formula)**  
 - **P — Performance Evaluation**
 
 The system is engineered for reproducibility on HPC environments and scales to thousands of Monte Carlo replications per scenario.
