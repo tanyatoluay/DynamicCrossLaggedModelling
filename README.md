@@ -46,6 +46,7 @@ project_root/
 ├── estimands/                # Analytic + Monte Carlo “truth” estimands
 │
 ├── methods/
+│   ├── g-formula/            # G-formula fits
 │   ├── sem/                  # SEM fits, summaries, performance metrics
 │   └── dynamite/             # MCMC fits, posterior summaries, checkpoints, metrics
 │
